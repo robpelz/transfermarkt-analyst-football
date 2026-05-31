@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-java@v4
         with: { java-version: '22', distribution: 'temurin' }
       - run: mvn javadoc:javadoc -f backend/transfermarkt-analyst/pom.xml
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with: { path: backend/transfermarkt-analyst/target/site/apidocs }
 
   deploy:
