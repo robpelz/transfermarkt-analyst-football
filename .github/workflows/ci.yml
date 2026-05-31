@@ -2,9 +2,9 @@ name: Java CI Clean Build
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 permissions:
@@ -15,23 +15,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Code auschecken
+      - name: Code holen
         uses: actions/checkout@v4
 
       - name: Java 22 einrichten
         uses: actions/setup-java@v4
         with:
-          java-version: "22"
-          distribution: "temurin"
-          # WICHTIG: KEINE "cache: maven" Zeile hier! Das verbietet GitHub den vorzeitigen Absturz.
+          java-version: '22'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: 'backend/transfermarkt-analyst/pom.xml'
 
-      - name: Java-Code vollautomatisch finden und testen
-        run: |
-          # Sucht die pom.xml im gesamten Repository, völlig egal ob Ordner groß oder klein geschrieben sind
-          POM_PATH=$(find . -iname "pom.xml" | head -n 1)
-          if [ -z "$POM_PATH" ]; then
-            echo "FEHLER: Es wurde absolut keine pom.xml im Repository gefunden!"
-            exit 1
-          fi
-          echo "pom.xml gefunden unter: $POM_PATH"
-          mvn -B -f "$POM_PATH" clean test -Dspring-boot.repackage.skip=true
+      - name: Java-Code kompilieren und testen
+        working-directory: backend/transfermarkt-analyst
+        # Das Flag unterbindet das fehlerhafte Spring-Boot-Plugin endgÃ¼ltig
+        run: mvn -B clean test -Dspring-boot.repackage.skip=true
+
+      # âœ… NEU: JaCoCo-Coverage-Report als Artifact hochladen
+      - name: JaCoCo Coverage-Report hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: backend/transfermarkt-analyst/target/site/jacoco/
+          retention-days: 30
+          if-no-files-found: warn
