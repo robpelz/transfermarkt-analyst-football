@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+# ✅ NEU: Node.js 20 Deprecation-Warnung global unterdrücken
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,7 +31,7 @@ jobs:
 
       - name: Java-Code vollautomatisch finden und testen
         run: |
-          # Sucht die pom.xml im gesamten Repository, v�llig egal ob Ordner gro� oder klein geschrieben sind
+          # Sucht die pom.xml im gesamten Repository, völlig egal ob Ordner groß oder klein geschrieben sind
           POM_PATH=$(find . -iname "pom.xml" | head -n 1)
           if [ -z "$POM_PATH" ]; then
             echo "FEHLER: Es wurde absolut keine pom.xml im Repository gefunden!"
