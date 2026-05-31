@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Code holen
         uses: actions/checkout@v4
+        with:
+          submodules: recursive  # ← NEU: Löst dein Problem
 
       - name: Java 22 einrichten
         uses: actions/setup-java@v4
@@ -28,10 +30,8 @@ jobs:
 
       - name: Java-Code kompilieren und testen
         working-directory: backend/transfermarkt-analyst
-        # Das Flag unterbindet das fehlerhafte Spring-Boot-Plugin endgültig
         run: mvn -B clean test -Dspring-boot.repackage.skip=true
 
-      # ✅ NEU: JaCoCo-Coverage-Report als Artifact hochladen
       - name: JaCoCo Coverage-Report hochladen
         uses: actions/upload-artifact@v4
         with:
