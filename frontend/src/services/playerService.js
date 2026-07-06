@@ -1,4 +1,3 @@
-// playerService.js
 import api from './api';
 
 const playerService = {
@@ -18,7 +17,7 @@ const playerService = {
         nationality: player.nationality || '?',
         club: player.club || '?',
         position: player.position || player.positions?.[0] || '?',
-        value: player.value || '?',
+        value: player.value || player.market_value || '?',
         imageUrl: player.imageUrl || null,
         positions: player.positions || []
       };

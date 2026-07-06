@@ -156,20 +156,21 @@ const PlayerCompare = () => {
   const addToScoutingList = async (player, score) => {
     setAddingToScouting(player.id);
     try {
-      await api.post(`/scouting/${player.id}`, null, {
-        params: {
-          playerName: player.name,
-          rating: Math.min(5, Math.max(1, Math.floor(score?.totalScore / 20))),
-          note: `Aus dem Vergleich hinzugefügt. Score: ${score?.totalScore || 0}`,
-          talent: score?.positionScore || 70,
-          speed: score?.priceScore || 70,
-          tactics: score?.ageScore || 70,
-          passing: score?.experienceScore || 70,
-          technique: score?.competitionScore || 70,
-          fitness: 70,
-          tackling: 30
-        }
-      });
+      // 🔥 KORRIGIERT: JSON-Body statt Query-Parameter
+      const requestBody = {
+        playerName: player.name,
+        rating: Math.min(5, Math.max(1, Math.floor(score?.totalScore / 20))),
+        note: `Aus dem Vergleich hinzugefügt. Score: ${score?.totalScore || 0}`,
+        talent: score?.positionScore || 70,
+        speed: score?.priceScore || 70,
+        tactics: score?.ageScore || 70,
+        passing: score?.experienceScore || 70,
+        technique: score?.competitionScore || 70,
+        fitness: 70,
+        tackling: 30
+      };
+      
+      await api.post(`/scouting/${player.id}`, requestBody);
       showToast(`${player.name} wurde zur Scout-Liste hinzugefügt!`);
     } catch (error) {
       console.error('Fehler beim Hinzufügen:', error);
@@ -207,6 +208,7 @@ const PlayerCompare = () => {
       <div style={{ flex: 1 }}>
         <div style={{ position: 'relative', marginBottom: '20px' }}>
           <input
+            ref={selectPlayer === selectPlayer1 ? inputRef1 : inputRef2}
             type="text"
             placeholder="Spieler suchen (z.B. Wirtz, Haaland)"
             value={searchTerm}
@@ -226,7 +228,7 @@ const PlayerCompare = () => {
           {searching && <div style={{ color: '#b8baff', fontSize: '12px', marginTop: '4px' }}>Suche...</div>}
           {showResults && results.length > 0 && (
             <div
-              ref={results === player1Results ? resultsRef1 : resultsRef2}
+              ref={selectPlayer === selectPlayer1 ? resultsRef1 : resultsRef2}
               style={{
                 position: 'absolute',
                 top: '100%',
@@ -518,10 +520,10 @@ const PlayerCompare = () => {
               borderRadius: '8px',
               cursor: !player1 || !player2 ? 'not-allowed' : 'pointer',
               fontSize: '16px',
-              marginTop: '0'
+              marginTop: '80px'
             }}
           >
-            Vergleichen
+            VS
           </button>
           
           {renderPlayerColumn(

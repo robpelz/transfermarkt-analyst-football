@@ -1,98 +1,114 @@
-import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+// src/components/scouting/PlayerCard.jsx
+import { COLORS, SCOUTING_CONSTANTS } from '../../constants';
+import ScoreBar from './ScoreBar';
+import { memo } from 'react';
 
-const PlayerCard = ({ player }) => {
-  const [imageUrl, setImageUrl] = useState(null);
-
-  useEffect(() => {
-    if (!imageUrl && player.name) {
-      const transfermarktUrl = `https://tmssl.akamaized.net/images/portrait/header/${player.id}.png`;
-      setImageUrl(transfermarktUrl);
-    }
-  }, [player.name, player.id, imageUrl]);
-
-  const formatMarketValue = (value) => {
-    if (!value || value === '?') return '?';
-    let num = String(value).replace(' €', '').replace(/\./g, '');
-    const million = parseFloat(num) / 1000000;
-    if (million >= 1000) return `${(million / 1000).toFixed(1)} Mrd`;
-    if (million >= 1) return `${Math.round(million)} M`;
-    return '?';
+const PlayerCard = memo(({ player, onEdit, onDelete, cleanName }) => {
+  const calculateTotalScore = (p) => {
+    const strengths = [
+      p.talent || SCOUTING_CONSTANTS.DEFAULT_VALUES.TALENT,
+      p.speed || SCOUTING_CONSTANTS.DEFAULT_VALUES.SPEED,
+      p.tactics || SCOUTING_CONSTANTS.DEFAULT_VALUES.TACTICS,
+      p.passing || SCOUTING_CONSTANTS.DEFAULT_VALUES.PASSING,
+      p.technique || SCOUTING_CONSTANTS.DEFAULT_VALUES.TECHNIQUE,
+      p.fitness || SCOUTING_CONSTANTS.DEFAULT_VALUES.FITNESS,
+    ];
+    const weakness = p.tackling || SCOUTING_CONSTANTS.DEFAULT_VALUES.TACKLING;
+    const avgStrength = strengths.reduce((a, b) => a + b, 0) / strengths.length;
+    const total = avgStrength * SCOUTING_CONSTANTS.SCORE_WEIGHTS.STRENGTH + 
+                  (100 - weakness) * SCOUTING_CONSTANTS.SCORE_WEIGHTS.WEAKNESS;
+    return Math.min(100, Math.max(0, Math.round(total)));
   };
 
-  const cleanName = (player.name || 'Unbekannt').replace(/ \(\d+\)/, '');
-
-  const displayPlayer = {
-    id: player.id,
-    name: cleanName,
-    position: player.position || 'N/A',
-    club: player.club || 'Vereinslos',
-    age: player.age || '?',
-    marketValue: formatMarketValue(player.value),
-    nationality: player.nationality || 'Unbekannt',
-    score: player.score || 75,
-  };
-
-  const getScoreClass = (score) => {
-    if (score >= 85) return 'score-high';
-    if (score >= 70) return 'score-mid';
-    if (score >= 55) return 'score-low';
-    return 'score-very-low';
+  const totalScore = calculateTotalScore(player);
+  
+  const getScoreColor = (value) => {
+    if (value >= SCOUTING_CONSTANTS.THRESHOLDS.STRONG) return COLORS.STRONG;
+    if (value >= SCOUTING_CONSTANTS.THRESHOLDS.AVERAGE) return COLORS.AVERAGE;
+    return COLORS.WEAK;
   };
 
   return (
-    <Link to={`/players/${displayPlayer.id}`} className="player-card">
-      <div className="player-header">
-        <div className="player-avatar">
-          <img 
-            src={imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayPlayer.name)}&background=6666ff&color=fff&size=48`}
-            alt={displayPlayer.name}
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayPlayer.name)}&background=6666ff&color=fff&size=48`;
-            }}
-          />
-        </div>
-        <div className="player-info">
-          <div className="player-name">{displayPlayer.name}</div>
-          <div className="player-meta">
-            <span className="player-badge">{displayPlayer.position}</span>
-            <span>•</span>
-            <span>{displayPlayer.club}</span>
+    <div style={{ backgroundColor: COLORS.BACKGROUND, border: `1px solid #2a2a3a`, borderRadius: '0.75rem', padding: '1rem' }}>
+      {/* Header mit Name, Rating, Buttons */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+          {/* Player Image */}
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: `linear-gradient(135deg, ${COLORS.PRIMARY}, ${COLORS.TEXT})`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <img 
+              src={`https://tmssl.akamaized.net/images/portrait/header/${player.playerId}.png`}
+              alt={player.playerName}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => { 
+                e.target.onerror = null; 
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.playerName)}&background=6666ff&color=fff&size=48`; 
+              }}
+            />
+          </div>
+          
+          {/* Player Info */}
+          <div>
+            <div style={{ fontWeight: '600', color: 'white' }}>{cleanName(player.playerName)}</div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.875rem', color: COLORS.TEXT }}>
+              <div style={{ display: 'flex', gap: '0.125rem' }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span key={star} style={{ color: star <= player.rating ? '#fbbf24' : '#2a2a3a' }}>★</span>
+                ))}
+              </div>
+              {player.note && <span>• {player.note}</span>}
+              <span>• {player.position?.split(' - ')[0] || '?'}</span>
+            </div>
           </div>
         </div>
-        <div className={`player-score ${getScoreClass(displayPlayer.score)}`}>
-          {displayPlayer.score}
+        
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={() => onEdit(player)} style={{ padding: '0.5rem', background: '#2a2a3a', border: 'none', borderRadius: '0.5rem', cursor: 'pointer' }}>✏️</button>
+          <button onClick={() => onDelete(player.id, player.playerName)} style={{ padding: '0.5rem', background: '#2a2a3a', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', color: COLORS.WEAK }}>🗑️</button>
         </div>
       </div>
-
-      <div className="player-stats">
-        <div className="player-stat-item">
-          <div className="player-stat-icon">📅</div>
-          <div className="player-stat-value">{displayPlayer.age}</div>
-          <div className="player-stat-label">Alter</div>
-        </div>
-        <div className="player-stat-item">
-          <div className="player-stat-icon">💰</div>
-          <div className="player-stat-value">{displayPlayer.marketValue}</div>
-          <div className="player-stat-label">Marktwert</div>
-        </div>
-        <div className="player-stat-item">
-          <div className="player-stat-icon">🌍</div>
-          <div className="player-stat-value">{displayPlayer.nationality}</div>
-          <div className="player-stat-label">Nationalität</div>
+      
+      {/* Score Bars */}
+      <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #2a2a3a' }}>
+        <div style={{ fontSize: '0.75rem', color: COLORS.TEXT, marginBottom: '0.5rem' }}>📊 Meine Scouting-Bewertung</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+          {['talent', 'speed', 'tactics', 'passing', 'technique', 'fitness'].map(attr => (
+            <div key={attr}>
+              <div style={{ fontSize: '0.7rem', display: 'flex', justifyContent: 'space-between' }}>
+                <span>{attr.charAt(0).toUpperCase() + attr.slice(1)}</span>
+                <span style={{ color: getScoreColor(player[attr] || SCOUTING_CONSTANTS.DEFAULT_VALUES[attr.toUpperCase()]) }}>
+                  {player[attr] || SCOUTING_CONSTANTS.DEFAULT_VALUES[attr.toUpperCase()]}%
+                </span>
+              </div>
+              <ScoreBar value={player[attr] || SCOUTING_CONSTANTS.DEFAULT_VALUES[attr.toUpperCase()]} />
+            </div>
+          ))}
+          <div>
+            <div style={{ fontSize: '0.7rem', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Zweikampf</span>
+              <span style={{ color: getScoreColor(player.tackling || SCOUTING_CONSTANTS.DEFAULT_VALUES.TACKLING) }}>
+                {player.tackling || SCOUTING_CONSTANTS.DEFAULT_VALUES.TACKLING}%
+              </span>
+            </div>
+            <ScoreBar value={player.tackling || SCOUTING_CONSTANTS.DEFAULT_VALUES.TACKLING} />
+          </div>
         </div>
       </div>
-
-      <div className="player-footer">
-        <div className="player-trend">
-          <span>📈</span>
-          <span>Stabil</span>
+      
+      {/* Total Score */}
+      <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid #2a2a3a', display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: getScoreColor(totalScore) }}>{totalScore}%</div>
+          <div style={{ fontSize: '0.7rem', color: COLORS.TEXT }}>
+            {totalScore >= SCOUTING_CONSTANTS.THRESHOLDS.TOP_SCORE ? 'Top-Talent' : 
+             totalScore >= SCOUTING_CONSTANTS.THRESHOLDS.WATCH_SCORE ? 'Beobachten' : 'Entwicklung nötig'}
+          </div>
         </div>
-        <span className="player-detail-link">Details →</span>
       </div>
-    </Link>
+    </div>
   );
-};
+});
+
+PlayerCard.displayName = 'PlayerCard';
 
 export default PlayerCard;
